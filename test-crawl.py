@@ -8,7 +8,7 @@ class DummyScraper(object):
 
     def process(self, url, html):
         print("Processing: " + url)
-        return (True, ['http://cnn.com'])
+        return (True, ['http://cnn.com', 'http://www.hockeybuzz.com'])
         
 urls = [
     'http://www.google.com',
