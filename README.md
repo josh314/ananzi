@@ -17,6 +17,10 @@ class Scraper(object):
 ```
 Besides determining `success` and `target_urls`, the other "stuff" done in `process` can be whatever you want, parsing the page for info, saving to file, etc.
 
+### Crawl order
+
+The `Crawler` imposes no particular order to the pages crawled (not [BFS](http://wikipedia.org/wiki/Breadth-first_search) or [DFS](http://wikipedia.org/wiki/Depth-first_search), for instance). The crawl "queue" is not guaranteed LIFO, FIFO, or anything else (implemented as a set). 
+
 ### Sample code
 
 In the following sample code, we drive the `Crawler` with a simple dummy class for a scraper. We pass in a handful of urls to crawl initially and the scraper doesn't do anything with the html responses. It does, however, return a list of urls to crawl next. It's always the same urls, but the `Crawler` will only crawl them the first time they are seen.
