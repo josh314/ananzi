@@ -52,12 +52,14 @@ class Crawler(object):
             print('Resource not found: ' + url)
             self.failed.add(url)
         else:
-             res = self.scraper.process(url, html)
-             if 'targets' in res:
-                 for target in res['targets']:
+             success, targets = self.scraper.process(url, html)
+             if success:
+                 for target in targets:
                      self.queue(target)
-             self.done.add(url)
-             #TODO: Update queue based on scraping results (i.e. add outgoing links) 
+                 self.done.add(url)
+             else:
+                 self.failed.add(url)
+
         finally:
             self.processing.remove(url)
 

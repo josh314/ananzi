@@ -1,6 +1,6 @@
 import asyncio
 
-from crawler import Crawler
+from ananzi.crawler import Crawler
 
 class DummyScraper(object):
     def __init__(self):
@@ -8,17 +8,19 @@ class DummyScraper(object):
 
     def process(self, url, html):
         print("Processing: " + url)
-        return {}
+        return (True, ['http://cnn.com'])
         
 urls = [
     'http://www.google.com',
     'http://www.wikipedia.org/wiki/Barack_Obama',
     'http://reddit.com',
-    'http://fhqwhgads.com/',
+    'http://area-51-is-real.gov',
+    'http://fhqwhgads.com/',#Actually real.
 ]
 
 loop = asyncio.get_event_loop()
-
-ananzi = Crawler(loop, DummyScraper())
-ananzi.launch(urls)
+cr = Crawler(loop, DummyScraper())
+cr.launch(urls)
+print("Successful: {}".format(len(cr.done)))
+print("Failed: {}".format(len(cr.failed)))
 loop.close()
