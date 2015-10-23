@@ -1,3 +1,4 @@
+import signal
 import asyncio
 
 import aiohttp
@@ -71,7 +72,12 @@ class Crawler(object):
             yield from asyncio.sleep(1)
         
     def launch(self, urls):
+        # queue up initial urls 
         for url in urls:
             self.queue(url)
         task = asyncio.Task(self.crawl())
+        try:
+            self.loop.add_signal_handler(signal.SIGINT, self.loop.stop)
+        except RuntimeError:
+            pass
         self.loop.run_until_complete(task)
