@@ -70,7 +70,7 @@ class Crawler(object):
         while True:
             try:
                 url = yield from asyncio.wait_for(self.queue.get(),5)
-                asyncio.Task(self.process_page(url))
+                self.loop.create_task(self.process_page(url))
             except asyncio.TimeoutError:
                 print("No more pages to crawl.")
                 break
@@ -79,7 +79,7 @@ class Crawler(object):
         # queue up initial urls 
         for url in urls:
             self.enqueue(url)
-        task = asyncio.Task(self.crawl())
+        task = self.loop.create_task(self.crawl())
         try:
             self.loop.add_signal_handler(signal.SIGINT, self.loop.stop)
         except RuntimeError:
