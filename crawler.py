@@ -5,7 +5,7 @@ import aiohttp
 from aiohttp import web
 
 class Crawler(object): 
-    def __init__(self, loop, scraper, max_connections=30, dl_cutoff=100):
+    def __init__(self, loop, scraper, max_connections=30):
         self.loop = loop
         self.scraper = scraper
         self.sem = asyncio.Semaphore(max_connections)#For preventing accidental DOS
@@ -13,15 +13,13 @@ class Crawler(object):
         self.processing = set()
         self.done = set()
         self.failed = set()
-        self.dl_cutoff = dl_cutoff
 
     def queue(self, url):
         seen = bool(url in self.queued or url in self.processing or url in self.done)
         if not seen:
             self.queued.add(url)
             task = asyncio.Task(self.process_page(url))
-        
-        
+                
     @asyncio.coroutine
     def get_html(self,url):
         html = None
@@ -43,7 +41,6 @@ class Crawler(object):
 
     @asyncio.coroutine
     def process_page(self, url):
-        res = {}
         self.queued.remove(url)
         self.processing.add(url)
         try:
@@ -60,15 +57,12 @@ class Crawler(object):
                  self.done.add(url)
              else:
                  self.failed.add(url)
-
         finally:
             self.processing.remove(url)
 
-        return res
-
     @asyncio.coroutine
     def crawl(self):
-        while (self.queued or self.processing) and len(self.done) <= self.dl_cutoff:
+        while (self.queued or self.processing):
             yield from asyncio.sleep(1)
         
     def launch(self, urls):
