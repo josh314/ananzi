@@ -5,22 +5,28 @@ import aiohttp
 from aiohttp import web
 
 class Crawler(object): 
-    def __init__(self, loop, scraper, max_connections=30, dl_cutoff=100):
+    def __init__(self, loop, scraper, max_connections=30, dl_cutoff=100, traversal="breadth-first"):
         self.loop = loop
         self.scraper = scraper
         self.sem = asyncio.Semaphore(max_connections)#For preventing accidental DOS
-        self.queue = set()
+        #Set queue type based upon traversal type
+        if traversal == "depth-first":
+            self.queue = asyncio.LifoQueue()
+        elif traversal == "breadth-first":
+            self.queue = asyncio.Queue()
+        else:
+            raise ValueError("Unknown traversal type. Use 'breadth-first' or 'depth-first'.")
         self.processing = set()
         self.done = set()
         self.failed = set()
+        self.seen = set()
         self.dl_cutoff = dl_cutoff
 
+
     def enqueue(self, url):
-        seen = bool(url in self.queue or url in self.processing or url in self.done)
-        if not seen:
-            self.queue.add(url)
-            task = asyncio.Task(self.process_page(url))
-        
+        if url not in self.seen:
+            self.seen.add(url)
+            self.queue.put_nowait(url)
         
     @asyncio.coroutine
     def get_html(self,url):
@@ -44,7 +50,6 @@ class Crawler(object):
     @asyncio.coroutine
     def process_page(self, url):
         res = {}
-        self.queue.remove(url)
         self.processing.add(url)
         try:
             with (yield from self.sem):#Limits number of concurrent requests
@@ -68,8 +73,13 @@ class Crawler(object):
 
     @asyncio.coroutine
     def crawl(self):
-        while (self.queue or self.processing) and len(self.done) <= self.dl_cutoff:
-            yield from asyncio.sleep(1)
+        while True:
+            try:
+                url = yield from asyncio.wait_for(self.queue.get(),5)
+                asyncio.Task(self.process_page(url))
+            except asyncio.TimeoutError:
+                print("No more pages to crawl.")
+                break
         
     def launch(self, urls):
         # queue up initial urls 
@@ -81,3 +91,4 @@ class Crawler(object):
         except RuntimeError:
             pass
         self.loop.run_until_complete(task)
+
