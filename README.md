@@ -19,7 +19,8 @@ Besides determining `success` and `target_urls`, the other "stuff" done in `proc
 
 ### Crawl order
 
-The `Crawler` imposes no particular order to the pages crawled (not [BFS](http://wikipedia.org/wiki/Breadth-first_search) or [DFS](http://wikipedia.org/wiki/Depth-first_search), for instance). The crawl "queue" is not guaranteed LIFO, FIFO, or anything else (implemented as a set). 
+The traversal order of the `Crawler` can be controlled with the `traversal` argument, which accepts the string values `'depth-first'` and `'breadth-first'` (the default). Newly discovered pages are added to the back of the crawling queue for breadth-first traversal, and to the front of the queue for depth-first traversal. This is similar to the graph traversal algorithms [BFS](http://wikipedia.org/wiki/Breadth-first_search) and [DFS](http://wikipedia.org/wiki/Depth-first_search).
+Note that while the order of scheduling tasks can be set deterministically, the asynchronous nature of the crawler doesn't provide any guarantees on the order in which the tasks finish. Therefore, these crawling schemes do not truly implement the BFS or DFS algorithms, but are qualitatively similar.
 
 ### Sample code
 
