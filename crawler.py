@@ -93,21 +93,16 @@ class Crawler(object):
         try:
             self.loop.run_until_complete(task)
         except asyncio.CancelledError:
-            print("Cancelled.")
-        except Exception as e:
-            print("Snap!")
-            print(e)
+            pass
+
 
     def shutdown(self):
         print("Shutdown initiated.")
         self.active = False
-        print("{} tasks still queued.".format(self.queue.qsize()))
         try:
             while True:
                 self.queue.get_nowait()
         except asyncio.QueueEmpty:
-            print("Queue emptied.")
             pass
         for task in asyncio.Task.all_tasks():
             task.cancel()
-            
