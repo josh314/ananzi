@@ -20,9 +20,10 @@ class Crawler(object):
         self.done = set()
         self.failed = set()
         self.seen = set()
-
+        self.active = True
+        
     def enqueue(self, url):
-        if url not in self.seen:
+        if self.active and url not in self.seen:
             self.seen.add(url)
             self.queue.put_nowait(url)
         
@@ -52,7 +53,7 @@ class Crawler(object):
             with (yield from self.sem):#Limits number of concurrent requests
                 html = yield from self.get_html(url)
         except Exception as e:
-            print('Resource not found: ' + url)
+#            print('Resource not found: ' + url)
             self.failed.add(url)
         else:
              success, targets = self.scraper.process(url, html)
@@ -74,15 +75,39 @@ class Crawler(object):
             except asyncio.TimeoutError:
                 print("No more pages to crawl.")
                 break
-        
+        while self.processing:
+            print("{} tasks still processing.".format(len(self.processing)))
+            yield from asyncio.sleep(5)
+            
+
     def launch(self, urls):
         # queue up initial urls 
         for url in urls:
             self.enqueue(url)
         task = self.loop.create_task(self.crawl())
         try:
-            self.loop.add_signal_handler(signal.SIGINT, self.loop.stop)
+            self.loop.add_signal_handler(signal.SIGINT, self.shutdown)
         except RuntimeError:
             pass
-        self.loop.run_until_complete(task)
 
+        try:
+            self.loop.run_until_complete(task)
+        except asyncio.CancelledError:
+            print("Cancelled.")
+        except Exception as e:
+            print("Snap!")
+            print(e)
+
+    def shutdown(self):
+        print("Shutdown initiated.")
+        self.active = False
+        print("{} tasks still queued.".format(self.queue.qsize()))
+        try:
+            while True:
+                self.queue.get_nowait()
+        except asyncio.QueueEmpty:
+            print("Queue emptied.")
+            pass
+        for task in asyncio.Task.all_tasks():
+            task.cancel()
+            
