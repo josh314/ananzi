@@ -1,8 +1,11 @@
 import signal
 import asyncio
+import logging
 
 import aiohttp
 from aiohttp import web
+
+
 
 class Crawler(object): 
     def __init__(self, loop, scraper, max_connections=30, traversal="breadth-first"):
@@ -21,6 +24,8 @@ class Crawler(object):
         self.failed = set()
         self.seen = set()
         self.active = True
+        self.log = logging.getLogger(__name__)
+        self.log.addHandler(logging.NullHandler())
         
     def enqueue(self, url):
         if self.active and url not in self.seen:
@@ -31,6 +36,7 @@ class Crawler(object):
     def get_html(self,url):
         html = None
         err = None
+        self.log.info("Requesting: " + url)
         resp = yield from aiohttp.get(url)
         if resp.status == 200:
             html = yield from resp.read()
@@ -48,12 +54,13 @@ class Crawler(object):
 
     @asyncio.coroutine
     def process_page(self, url):
+        self.log.info("Processing: " + url)
         self.processing.add(url)
         try:
             with (yield from self.sem):#Limits number of concurrent requests
                 html = yield from self.get_html(url)
         except Exception as e:
-#            print('Resource not found: ' + url)
+            self.log.error('Resource not found: ' + url)
             self.failed.add(url)
         else:
              success, targets = self.scraper.process(url, html)
@@ -73,10 +80,10 @@ class Crawler(object):
                 url = yield from asyncio.wait_for(self.queue.get(),5)
                 self.loop.create_task(self.process_page(url))
             except asyncio.TimeoutError:
-                print("No more pages to crawl.")
+                self.log.info("No more pages to crawl.")
                 break
         while self.processing:
-            print("{} tasks still processing.".format(len(self.processing)))
+            self.log.debug("{} tasks still processing.".format(len(self.processing)))
             yield from asyncio.sleep(5)
             
 
@@ -97,7 +104,7 @@ class Crawler(object):
 
 
     def shutdown(self):
-        print("Shutdown initiated.")
+        self.log.warning("Shutdown initiated.")
         self.active = False
         try:
             while True:

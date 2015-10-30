@@ -1,4 +1,6 @@
 import asyncio
+import logging
+logging.basicConfig(level=logging.WARNING)
 
 from ananzi.crawler import Crawler
 
@@ -7,7 +9,7 @@ class DummyScraper(object):
         pass
 
     def process(self, url, html):
-        print("Processing: " + url)
+        logging.info("Processed: " + url)
         return (True, ['http://cnn.com', 'http://www.hockeybuzz.com'])
         
 urls = [
